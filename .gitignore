@@ -1,0 +1,11 @@
+/node_modules
+
+/.next/
+
+/build
+
+.tool-versions
+
+# local env files
+.env.*
+.env
