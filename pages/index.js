@@ -1,5 +1,6 @@
 import React from 'react'
+import MicrophoneButton from '../components/MicrophoneButton'
 
 export default function Home() {
-  return <div>Welcome to Next.js!</div>
+  return <div><MicrophoneButton /></div>
 }
