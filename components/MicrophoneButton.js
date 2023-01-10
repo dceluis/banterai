@@ -5,18 +5,14 @@ import LanguageSelector from '../components/LanguageSelector'
 function MicrophoneButton() {
   const [language, setLanguage] = useState('English');
   const [isRecording, setIsRecording] = useState(false);
-  const [hasPermission, setHasPermission] = useState(undefined);
   const [error, setError] = useState(null);
   const [transcriber, setTranscriber] = useState(null);
   const [transcript, setTranscript] = useState(null);
   const [conversation, setConversation] = useState([]);
 
   const getMicPermission = () => {
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-      setHasPermission(true);
-    }).catch(err => {
+    navigator.mediaDevices.getUserMedia({ audio: true }).catch(err => {
       setError("You must allow access to your microphone to use this app.");
-      setHasPermission(false);
     });
   }
 
@@ -78,10 +74,6 @@ function MicrophoneButton() {
   }
 
   const handleClick = () => {
-    if (!hasPermission) {
-      getMicPermission();
-    }
-
     if (isRecording) {
       setIsRecording(false);
     } else {
@@ -90,18 +82,7 @@ function MicrophoneButton() {
   };
 
   useEffect(() => {
-    navigator.permissions.query({ name: 'microphone' }).then((result) => {
-      if (result.state === 'granted') {
-        setHasPermission(true);
-      } else if (result.state === 'prompt') {
-        setHasPermission(undefined);
-      } else if (result.state === 'denied') {
-        setHasPermission(false);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
+    getMicPermission();
     const transcriber = buildTranscribeAudio();
 
     setTranscriber(transcriber);
@@ -109,15 +90,13 @@ function MicrophoneButton() {
 
   useEffect(() => {
     if (transcriber) {
-      if (hasPermission) {
-        if (isRecording) {
-          transcriber.start();
-        } else {
-          transcriber.stop();
-        }
+      if (isRecording) {
+        transcriber.start();
+      } else {
+        transcriber.stop();
       }
     }
-  }, [transcriber, hasPermission, isRecording]);
+  }, [isRecording]);
 
   useEffect(() => {
     async function fetchConversation() {
