@@ -1,14 +1,16 @@
+import { languages } from "../../utils/lang";
 const { Configuration, OpenAIApi } = require("openai");
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
-const promptBase = "The following is a conversation in English between two friends. The person referred to as 'AI' is creative, clever, and very friendly. Most of AI's replies aren't typical, but uncommon, funny and short. Often, basic pleasantries are skipped. Every couple of questions, AI skillfully changes the subject and starts talking about everyday things and cultural occurrences. Also, in 1/3 of all interventions, AI just answers with some anecdotes of its own. In many interventions, AI makes a funny or clever remark.\n\n"
+const promptBase = "The following is a conversation between two friends who speak <LANGUAGE>. The person referred to as 'AI' is creative, clever, and very friendly. Most of AI's replies aren't typical, but uncommon, funny and short. Often, basic pleasantries are skipped. Every couple of questions, AI skillfully changes the subject and starts talking about everyday things and cultural occurrences. Also, in 1/3 of all interventions, AI just answers with some anecdotes of its own. In many interventions, AI makes a funny or clever remark:\n\n\n"
 
 export default async function handler(req, res) {
-  const { conversation } = req.body;
-  const prompt = promptBase + conversation + "\nAI: ";
+  const { conversation, language } = req.body;
+  const selectedLang = languages[languages.indexOf(language)] || "English";
+  const prompt = promptBase.replace("<LANGUAGE>", selectedLang) + conversation + "\nAI: ";
 
   const params = {
     model: "text-curie-001",

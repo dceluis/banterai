@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { getLanguageCode } from '../utils/lang';
+import LanguageSelector from '../components/LanguageSelector'
 
 function MicrophoneButton() {
+  const [language, setLanguage] = useState('English');
   const [isRecording, setIsRecording] = useState(false);
   const [hasPermission, setHasPermission] = useState(undefined);
   const [error, setError] = useState(null);
@@ -26,12 +29,12 @@ function MicrophoneButton() {
 
     if (text !== '') {
       const speakText = new SpeechSynthesisUtterance(text);
+      speakText.lang = getLanguageCode(language);
+
       speakText.onstart = e => {
-        console.log('Speech has started...');
         setIsRecording(false);
       }
       speakText.onend = e => {
-        console.log('Speech has finished.');
         setIsRecording(true);
       }
       synth.speak(speakText);
@@ -129,7 +132,10 @@ function MicrophoneButton() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ conversation: newConversation.join("\n") }),
+          body: JSON.stringify({
+            conversation: newConversation.join("\n"),
+            language: language
+          }),
         });
 
         let responseJson = await res.json();
@@ -144,8 +150,16 @@ function MicrophoneButton() {
     fetchConversation();
   }, [transcript]);
 
+  useEffect(() => {
+    setConversation([]);
+    if (transcriber) {
+      transcriber.lang = getLanguageCode(language);
+    }
+  }, [language]);
+
   return (
     <div>
+      <LanguageSelector updateLanguage={setLanguage}/>
       <button onClick={handleClick}>
         {isRecording ? 'Stop chatting' : 'Start chatting'}
       </button>
