@@ -120,7 +120,9 @@ function MicrophoneButton() {
     async function fetchConversation() {
       if (transcript) {
         const newEntry = "Human: " + transcript;
-        const newConversation = [...conversation, newEntry];
+        // Only keep the last 5 interactions
+        const pastEntries = conversation.slice(-10);
+        const newConversation = [...pastEntries, newEntry];
 
         const res = await fetch("/api/chat", {
           method: "POST",

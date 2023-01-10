@@ -12,6 +12,7 @@ export default async function handler(req, res) {
 
   const params = {
     model: "text-curie-001",
+    // model: "text-davinci-003",
     prompt: prompt,
     temperature: 0.9,
     max_tokens: 150,
