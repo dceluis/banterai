@@ -1,16 +1,16 @@
-import { languages } from "../../utils/lang";
+import { languages, getPrompt } from "../../utils/lang";
 const { Configuration, OpenAIApi } = require("openai");
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
 });
 const openai = new OpenAIApi(configuration);
-const promptBase = "The following is a conversation between two friends. Both friends speak <LANGUAGE>. The person referred to as 'AI' is creative, clever, and very friendly. Most of AI's replies aren't typical, but uncommon, funny and short. Often, basic pleasantries are skipped. Every couple of questions, AI skillfully changes the subject and starts talking about everyday things and cultural occurrences. Also, in 1/3 of all interventions, AI just answers with some anecdotes of its own. In many interventions, AI makes a funny or clever remark:\n\n\n"
 
 export default async function handler(req, res) {
   const { conversation, language } = req.body;
   const selectedLang = languages[languages.indexOf(language)] || "English";
-  const prompt = promptBase.replace("<LANGUAGE>", selectedLang) + conversation + "\nAI: ";
+  const promptBase = getPrompt(selectedLang);
+  const prompt = promptBase + conversation + "\nAI: ";
 
   const params = {
     model: "text-curie-001",
@@ -23,6 +23,7 @@ export default async function handler(req, res) {
     presence_penalty: 0.6,
     stop: [" Human:", " AI:"],
   }
+  console.log("Params: ", params);
 
   const response = await openai.createCompletion(params);
   const completion = response.data.choices[0].text.trim();

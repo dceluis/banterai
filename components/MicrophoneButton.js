@@ -19,22 +19,24 @@ function MicrophoneButton() {
   const speak = (text) => {
     const synth = window.speechSynthesis;
 
-    if (synth.speaking) {
-      synth.cancel();
-    }
-
-    if (text !== '') {
-      const speakText = new SpeechSynthesisUtterance(text);
-      speakText.lang = getLanguageCode(language);
-
-      speakText.onstart = e => {
-        setIsRecording(false);
+    const promise = new Promise((resolve, reject) => {
+      if (synth.speaking) {
+        synth.cancel();
       }
-      speakText.onend = e => {
-        setIsRecording(true);
+
+      if (text !== '') {
+        const speakText = new SpeechSynthesisUtterance(text);
+        speakText.lang = getLanguageCode(language);
+        speakText.onend = e => {
+          resolve();
+        }
+        synth.speak(speakText);
+      } else {
+        resolve();
       }
-      synth.speak(speakText);
-    }
+    });
+
+    return promise;
   }
 
   const buildTranscribeAudio = () => {
@@ -99,34 +101,12 @@ function MicrophoneButton() {
   }, [isRecording]);
 
   useEffect(() => {
-    async function fetchConversation() {
-      if (transcript) {
-        const newEntry = "Human: " + transcript;
-        // Only keep the last 5 interactions
-        const pastEntries = conversation.slice(-10);
-        const newConversation = [...pastEntries, newEntry];
+    const newEntry = "Human: " + transcript;
+    // Only keep the last 5 interactions
+    const pastEntries = conversation.slice(-10);
+    const newConversation = [...pastEntries, newEntry];
 
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            conversation: newConversation.join("\n"),
-            language: language
-          }),
-        });
-
-        let responseJson = await res.json();
-        if (res.status !== 200) {
-          setError(responseJson.message);
-        } else {
-          setConversation([...newConversation, "AI: " + responseJson.reply]);
-          speak(responseJson.reply);
-        }
-      }
-    }
-    fetchConversation();
+    setConversation(newConversation);
   }, [transcript]);
 
   useEffect(() => {
@@ -135,6 +115,42 @@ function MicrophoneButton() {
       transcriber.lang = getLanguageCode(language);
     }
   }, [language]);
+
+  useEffect(() => {
+    const lastEntry = conversation[conversation.length - 1];
+    if (lastEntry) {
+      if (lastEntry.startsWith("AI: ")) {
+        setIsRecording(false);
+        speak(lastEntry.substring(4)).then(() => {
+          setIsRecording(true);
+        });
+      } else {
+        speak("");
+
+        async function fetchConversation(lastEntry) {
+          const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              conversation: conversation.join("\n"),
+              language: language
+            }),
+          });
+
+          let responseJson = await res.json();
+          if (res.status !== 200) {
+            setError(responseJson.message);
+          } else {
+            setConversation([...conversation, "AI: " + responseJson.reply]);
+          }
+        }
+
+        fetchConversation(lastEntry.substring(7));
+      }
+    }
+  }, [conversation]);
 
   return (
     <div>
