@@ -5,6 +5,8 @@ function MicrophoneButton() {
   const [hasPermission, setHasPermission] = useState(undefined);
   const [error, setError] = useState(null);
   const [transcribe, setTranscribe] = useState(null);
+  const [transcript, setTranscript] = useState(null);
+  const [conversation, setConversation] = useState(null);
 
   const getMicPermission = () => {
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
@@ -35,7 +37,8 @@ function MicrophoneButton() {
       const lastResult = results[results.length - 1];
       const transcript = lastResult[0].transcript;
 
-      console.log(transcript);
+      console.log("Detected transcript:" + transcript);
+      setTranscript(transcript);
     }
 
     transcribe.onerror = (event) => {
@@ -44,6 +47,7 @@ function MicrophoneButton() {
 
     transcribe.onend = () => {
       console.log("Transcription ended");
+      setIsRecording(false);
     }
 
     return transcribe;
@@ -95,12 +99,36 @@ function MicrophoneButton() {
     }
   }, [isRecording, transcribe, hasPermission]);
 
+  useEffect(() => {
+    async function fetchConversation() {
+      if (transcript) {
+        const newConversation = `${conversation ? conversation : ""}\nHuman: ${transcript}`;
+
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ conversation: newConversation }),
+        });
+
+        let responseJson = await res.json();
+        if (res.status !== 200) {
+          setError(responseJson.message);
+        } else {
+          setConversation(responseJson.conversation);
+        }
+      }
+    }
+    fetchConversation();
+  }, [transcript]);
+
   return (
     <div>
       <button onClick={handleClick}>
         {isRecording ? 'Stop chatting' : 'Start chatting'}
       </button>
-
+      <div>{conversation}</div>
       {error && <p>Error: {error}</p>}
     </div>
   );
