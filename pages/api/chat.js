@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   const completion = response.data.choices[0].text;
 
   if (response.status === 200) {
-    res.status(200).json({ conversation: conversation + "\nAI: " + completion });
+    res.status(200).json({ reply: completion });
   } else {
     res.status(500).json({ message: response.statusText });
   }

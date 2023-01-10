@@ -6,7 +6,7 @@ function MicrophoneButton() {
   const [error, setError] = useState(null);
   const [transcribe, setTranscribe] = useState(null);
   const [transcript, setTranscript] = useState(null);
-  const [conversation, setConversation] = useState(null);
+  const [conversation, setConversation] = useState([]);
 
   const getMicPermission = () => {
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
@@ -102,21 +102,22 @@ function MicrophoneButton() {
   useEffect(() => {
     async function fetchConversation() {
       if (transcript) {
-        const newConversation = `${conversation ? conversation : ""}\nHuman: ${transcript}`;
+        const newEntry = "Human: " + transcript;
+        const newConversation = [...conversation, newEntry];
 
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ conversation: newConversation }),
+          body: JSON.stringify({ conversation: newConversation.join("\n") }),
         });
 
         let responseJson = await res.json();
         if (res.status !== 200) {
           setError(responseJson.message);
         } else {
-          setConversation(responseJson.conversation);
+          setConversation([...newConversation, "AI: " + responseJson.reply]);
         }
       }
     }
@@ -128,7 +129,7 @@ function MicrophoneButton() {
       <button onClick={handleClick}>
         {isRecording ? 'Stop chatting' : 'Start chatting'}
       </button>
-      <div>{conversation}</div>
+      <div>{conversation.map((entry, index) => <p key={index}>{entry}</p>)}</div>
       {error && <p>Error: {error}</p>}
     </div>
   );
