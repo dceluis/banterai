@@ -4,7 +4,7 @@ function MicrophoneButton() {
   const [isRecording, setIsRecording] = useState(false);
   const [hasPermission, setHasPermission] = useState(undefined);
   const [error, setError] = useState(null);
-  const [transcribe, setTranscribe] = useState(null);
+  const [transcriber, setTranscriber] = useState(null);
   const [transcript, setTranscript] = useState(null);
   const [conversation, setConversation] = useState([]);
 
@@ -17,6 +17,27 @@ function MicrophoneButton() {
     });
   }
 
+  const speak = (text) => {
+    const synth = window.speechSynthesis;
+
+    if (synth.speaking) {
+      synth.cancel();
+    }
+
+    if (text !== '') {
+      const speakText = new SpeechSynthesisUtterance(text);
+      speakText.onstart = e => {
+        console.log('Speech has started...');
+        setIsRecording(false);
+      }
+      speakText.onend = e => {
+        console.log('Speech has finished.');
+        setIsRecording(true);
+      }
+      synth.speak(speakText);
+    }
+  }
+
   const buildTranscribeAudio = () => {
     // Check if the browser supports the Web Speech API
     if (!('webkitSpeechRecognition' in window)) {
@@ -24,15 +45,15 @@ function MicrophoneButton() {
       return null;
     }
 
-    const transcribe = new webkitSpeechRecognition();
-    // transcribe.interimResults = true;
-    transcribe.continuous = true;
+    const transcriber = new webkitSpeechRecognition();
+    // transcriber.interimResults = true;
+    transcriber.continuous = true;
 
-    transcribe.onstart = () => {
+    transcriber.onstart = () => {
       console.log('Transcription started');
     };
 
-    transcribe.onresult = (event) => {
+    transcriber.onresult = (event) => {
       const results = event.results;
       const lastResult = results[results.length - 1];
       const transcript = lastResult[0].transcript;
@@ -41,24 +62,16 @@ function MicrophoneButton() {
       setTranscript(transcript);
     }
 
-    transcribe.onerror = (event) => {
+    transcriber.onerror = (event) => {
       console.log("Error occurred in transcription: " + event.error);
     }
 
-    transcribe.onend = () => {
+    transcriber.onend = () => {
       console.log("Transcription ended");
       setIsRecording(false);
     }
 
-    return transcribe;
-  }
-
-  const toggleRecording = () => {
-    if (isRecording) {
-      setIsRecording(false);
-    } else {
-      setIsRecording(true);
-    }
+    return transcriber;
   }
 
   const handleClick = () => {
@@ -66,7 +79,11 @@ function MicrophoneButton() {
       getMicPermission();
     }
 
-    toggleRecording();
+    if (isRecording) {
+      setIsRecording(false);
+    } else {
+      setIsRecording(true);
+    }
   };
 
   useEffect(() => {
@@ -82,22 +99,22 @@ function MicrophoneButton() {
   }, []);
 
   useEffect(() => {
-    const transcribe = buildTranscribeAudio();
+    const transcriber = buildTranscribeAudio();
 
-    setTranscribe(transcribe);
+    setTranscriber(transcriber);
   }, []);
 
   useEffect(() => {
-    if (hasPermission) {
-      if (transcribe) {
+    if (transcriber) {
+      if (hasPermission) {
         if (isRecording) {
-          transcribe.start();
+          transcriber.start();
         } else {
-          transcribe.stop();
+          transcriber.stop();
         }
       }
     }
-  }, [isRecording, transcribe, hasPermission]);
+  }, [transcriber, hasPermission, isRecording]);
 
   useEffect(() => {
     async function fetchConversation() {
@@ -118,6 +135,7 @@ function MicrophoneButton() {
           setError(responseJson.message);
         } else {
           setConversation([...newConversation, "AI: " + responseJson.reply]);
+          speak(responseJson.reply);
         }
       }
     }
